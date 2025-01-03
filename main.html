@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Speech with Adjustable Pauses</title>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-color: #f3f4f6;
+            --card-bg: white;
+            --text-color: #1f2937;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 3rem auto;
+            padding: 0 1.5rem;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.5;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        h1 {
+            color: var(--text-color);
+            margin-bottom: 2rem;
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .pause-control {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background-color: var(--bg-color);
+            border-radius: 8px;
+        }
+
+        .pause-control input[type="range"] {
+            flex-grow: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #d1d5db;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .pause-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .pause-control input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--primary-hover);
+        }
+
+        .pause-value {
+            min-width: 100px;
+            padding: 0.5rem 1rem;
+            background-color: var(--card-bg);
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            resize: vertical;
+            font-size: 1rem;
+            line-height: 1.5;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        button {
+            flex: 1;
+            padding: 1rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            text-align: center;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background-color: var(--primary-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Text to Speech with Pauses</h1>
+        
+        <div class="control-group">
+            <label for="pauseControl">Pause Duration Between Words</label>
+            <div class="pause-control">
+                <input 
+                    type="range" 
+                    id="pauseControl" 
+                    min="0.2" 
+                    max="3.0" 
+                    step="0.1" 
+                    value="1.0"
+                >
+                <div class="pause-value" id="pauseValue">1.0 seconds</div>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label for="textInput">Enter Your Text</label>
+            <textarea 
+                id="textInput" 
+                placeholder="Enter or paste your text here..."
+            ></textarea>
+        </div>
+
+        <div class="button-group">
+            <button id="speakButton">Speak Text</button>
+            <button id="clearButton">Clear Text</button>
+        </div>
+
+        <div class="status" id="status"></div>
+        <div class="progress-bar">
+            <div class="progress-bar-fill" id="progressBar"></div>
+        </div>
+    </div>
+
+    <script>
+        const textInput = document.getElementById('textInput');
+        const speakButton = document.getElementById('speakButton');
+        const clearButton = document.getElementById('clearButton');
+        const statusElement = document.getElementById('status');
+        const pauseControl = document.getElementById('pauseControl');
+        const pauseValue = document.getElementById('pauseValue');
+        const progressBar = document.getElementById('progressBar');
+        let isSpeaking = false;
+
+        // Update pause value display
+        pauseControl.addEventListener('input', () => {
+            pauseValue.textContent = `${pauseControl.value} seconds`;
+        });
+
+        // Clear button functionality
+        clearButton.addEventListener('click', () => {
+            textInput.value = '';
+            statusElement.textContent = '';
+            progressBar.style.width = '0%';
+        });
+
+        // Check if speech synthesis is available
+        if (!window.speechSynthesis) {
+            speakButton.disabled = true;
+            statusElement.textContent = "Speech synthesis is not supported in your browser.";
+        }
+
+        async function speakWithPauses() {
+            if (isSpeaking) {
+                window.speechSynthesis.cancel();
+                isSpeaking = false;
+                speakButton.textContent = "Speak Text";
+                statusElement.textContent = "";
+                progressBar.style.width = '0%';
+                return;
+            }
+
+            const text = textInput.value.trim();
+            if (!text) {
+                statusElement.textContent = "Please enter some text first.";
+                return;
+            }
+
+            // Split text into words
+            const words = text.split(/\s+/);
+            isSpeaking = true;
+            speakButton.textContent = "Stop Speaking";
+
+            for (let i = 0; i < words.length; i++) {
+                if (!isSpeaking) break;
+
+                const utterance = new SpeechSynthesisUtterance(words[i]);
+                
+                // Update status and progress
+                statusElement.textContent = `Speaking word ${i + 1} of ${words.length}`;
+                progressBar.style.width = `${((i + 1) / words.length) * 100}%`;
+
+                // Speak the word
+                window.speechSynthesis.speak(utterance);
+
+                // Wait for the word to finish and add custom pause
+                await new Promise(resolve => {
+                    utterance.onend = () => {
+                        setTimeout(resolve, parseFloat(pauseControl.value) * 1000);
+                    };
+                });
+            }
+
+            // Reset button and status when finished
+            if (isSpeaking) {
+                isSpeaking = false;
+                speakButton.textContent = "Speak Text";
+                statusElement.textContent = "Finished speaking.";
+            }
+        }
+
+        speakButton.addEventListener('click', speakWithPauses);
+    </script>
+</body>
+</html>
